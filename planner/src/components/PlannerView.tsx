@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   format,
   startOfMonth,
@@ -12,6 +13,7 @@ import {
   isToday,
 } from "date-fns";
 import { useStore } from "../store/useStore";
+import { SessionDetailModal } from "./SessionDetailModal";
 
 type Props = {
   focusDate: Date;
@@ -20,6 +22,7 @@ type Props = {
 };
 
 export function PlannerView({ focusDate, onFocusDateChange, onDayClick }: Props) {
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const { viewMode, workSessions, customers } = useStore();
 
   const getSessionsForDay = (d: Date) => {
@@ -118,9 +121,13 @@ export function PlannerView({ focusDate, onFocusDateChange, onDayClick }: Props)
                     return (
                       <div
                         key={s.id}
-                        className="session-chip"
+                        className="session-chip clickable"
                         style={{ borderLeftColor: color }}
                         title={`${s.hours}h${s.notes ? `: ${s.notes}` : ""}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedSessionId(s.id);
+                        }}
                       >
                         <span className="chip-hours">{s.hours}h</span>
                         {s.notes && (
@@ -138,6 +145,13 @@ export function PlannerView({ focusDate, onFocusDateChange, onDayClick }: Props)
           })}
         </div>
       </div>
+
+      {selectedSessionId && (
+        <SessionDetailModal
+          sessionId={selectedSessionId}
+          onClose={() => setSelectedSessionId(null)}
+        />
+      )}
     </section>
   );
 }

@@ -16,12 +16,10 @@ export function AddWorkSessionModal({
 }: Props) {
   const { customers, addWorkSession } = useStore();
 
-  const [isAdHoc, setIsAdHoc] = useState(
-    preselectedCustomerId === null || (preselectedCustomerId === undefined && customers.length === 0)
-  );
   const [customerId, setCustomerId] = useState<string | null>(
     preselectedCustomerId ?? (customers[0]?.id ?? null)
   );
+  const isAdHoc = customerId === null;
   const [date, setDate] = useState(preselectedDate ?? format(new Date(), "yyyy-MM-dd"));
   const [hours, setHours] = useState("1");
   const [notes, setNotes] = useState("");
@@ -29,10 +27,7 @@ export function AddWorkSessionModal({
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     const h = parseFloat(hours);
-    const canSubmit =
-      !isNaN(h) &&
-      h > 0 &&
-      (isAdHoc || (customerId && customers.length > 0));
+    const canSubmit = !isNaN(h) && h > 0;
     if (canSubmit) {
       addWorkSession({
         customerId: isAdHoc ? null : customerId,
@@ -48,42 +43,22 @@ export function AddWorkSessionModal({
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2 className="modal-title">
-          {isAdHoc ? "Log ad-hoc work" : "Log work session"}
-        </h2>
+        <h2 className="modal-title">Log work session</h2>
         <form onSubmit={handleSubmit}>
-          <div className="session-type-toggle">
-            <button
-              type="button"
-              className={!isAdHoc ? "active" : ""}
-              onClick={() => setIsAdHoc(false)}
+          <label>
+            Customer
+            <select
+              value={customerId ?? ""}
+              onChange={(e) => setCustomerId(e.target.value || null)}
             >
-              Scheduled
-            </button>
-            <button
-              type="button"
-              className={isAdHoc ? "active" : ""}
-              onClick={() => setIsAdHoc(true)}
-            >
-              Ad-hoc
-            </button>
-          </div>
-
-          {!isAdHoc && (
-            <label>
-              Customer
-              <select
-                value={customerId ?? ""}
-                onChange={(e) => setCustomerId(e.target.value || null)}
-              >
-                {customers.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
+              <option value="">Ad-hoc (no customer)</option>
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
 
           <label>
             Date

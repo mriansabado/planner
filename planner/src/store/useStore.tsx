@@ -7,18 +7,24 @@ const STORAGE_KEY = "freelance-planner-data";
 type StoreData = {
   customers: Customer[];
   workSessions: WorkSession[];
+  customerOrder: string[];
 };
 
 const DEFAULT_DATA: StoreData = {
   customers: [],
   workSessions: [],
+  customerOrder: [],
 };
 
 function loadData(): StoreData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      if ((!parsed.customerOrder || parsed.customerOrder.length === 0) && Array.isArray(parsed.customers)) {
+        parsed.customerOrder = parsed.customers.map((c: Customer) => c.id);
+      }
+      return parsed;
     }
   } catch {
     // ignore
@@ -42,13 +48,16 @@ function nextColor(customers: Customer[]): string {
 
 type Store = {
   customers: Customer[];
+  customerOrder: string[];
   workSessions: WorkSession[];
   viewMode: ViewMode;
   setViewMode: (m: ViewMode) => void;
   addCustomer: (name: string, options: { monthlyHours?: number; isAdHoc?: boolean }) => void;
   removeCustomer: (id: string) => void;
+  reorderCustomers: (fromIndex: number, toIndex: number) => void;
   addWorkSession: (session: Omit<WorkSession, "id">) => void;
   removeWorkSession: (id: string) => void;
+  updateWorkSession: (id: string, updates: Partial<Omit<WorkSession, "id">>) => void;
   getSessionsForMonth: (year: number, month: number) => WorkSession[];
   getTotalCommittedHours: (year: number, month: number) => number;
   getTotalLoggedHours: (year: number, month: number) => number;
@@ -76,7 +85,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         color,
         isAdHoc,
       };
-      return { ...prev, customers: [...prev.customers, customer] };
+      return {
+        ...prev,
+        customers: [...prev.customers, customer],
+        customerOrder: [...prev.customerOrder, customer.id],
+      };
     });
   }, []);
 
@@ -84,8 +97,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setData((prev) => ({
       ...prev,
       customers: prev.customers.filter((c) => c.id !== id),
+      customerOrder: prev.customerOrder.filter((oid) => oid !== id),
       workSessions: prev.workSessions.filter((s) => s.customerId !== id),
     }));
+  }, []);
+
+  const reorderCustomers = useCallback((fromIndex: number, toIndex: number) => {
+    setData((prev) => {
+      const order = [...prev.customerOrder];
+      const [removed] = order.splice(fromIndex, 1);
+      order.splice(toIndex, 0, removed);
+      return { ...prev, customerOrder: order };
+    });
   }, []);
 
   const addWorkSession = useCallback((session: Omit<WorkSession, "id">) => {
@@ -103,6 +126,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setData((prev) => ({
       ...prev,
       workSessions: prev.workSessions.filter((s) => s.id !== id),
+    }));
+  }, []);
+
+  const updateWorkSession = useCallback((id: string, updates: Partial<Omit<WorkSession, "id">>) => {
+    setData((prev) => ({
+      ...prev,
+      workSessions: prev.workSessions.map((s) =>
+        s.id === id ? { ...s, ...updates } : s
+      ),
     }));
   }, []);
 
@@ -149,15 +181,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [getSessionsForMonth]
   );
 
+  const orderedCustomers = data.customerOrder
+    .map((id) => data.customers.find((c) => c.id === id))
+    .filter((c): c is Customer => c != null);
+
   const value: Store = {
-    customers: data.customers,
+    customers: orderedCustomers,
+    customerOrder: data.customerOrder,
     workSessions: data.workSessions,
     viewMode,
     setViewMode,
     addCustomer,
     removeCustomer,
+    reorderCustomers,
     addWorkSession,
     removeWorkSession,
+    updateWorkSession,
     getSessionsForMonth,
     getTotalCommittedHours,
     getTotalLoggedHours,

@@ -1,12 +1,18 @@
+import { useState } from "react";
 import { useStore } from "../store/useStore";
+import { CustomerNotesModal } from "./CustomerNotesModal";
 
 type Props = {
   year: number;
   month: number;
+  selectedCustomerIds: Set<string>;
+  onToggleCustomer: (id: string) => void;
 };
 
-export function CustomerList({ year, month }: Props) {
-  const { customers, getSessionsForMonth, removeCustomer } = useStore();
+export function CustomerList({ year, month, selectedCustomerIds, onToggleCustomer }: Props) {
+  const [notesCustomerId, setNotesCustomerId] = useState<string | null>(null);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const { customers, getSessionsForMonth, reorderCustomers } = useStore();
   const sessions = getSessionsForMonth(year, month);
 
   const hoursByCustomer = new Map<string, number>();
@@ -37,24 +43,62 @@ export function CustomerList({ year, month }: Props) {
     <section className="customer-list">
       <h3 className="section-title">Clients & commitments</h3>
       <div className="customer-cards">
-        {customers.map((c) => {
+        {customers.map((c, index) => {
           const logged = hoursByCustomer.get(c.id) ?? 0;
           const hasCommitment = !c.isAdHoc && c.monthlyHours > 0;
           const pct = hasCommitment ? Math.min(100, (logged / c.monthlyHours) * 100) : 0;
           const met = hasCommitment && logged >= c.monthlyHours;
 
           return (
-            <div key={c.id} className={`customer-card ${c.isAdHoc ? "ad-hoc-customer" : ""}`}>
+            <div
+              key={c.id}
+              className={`customer-card ${c.isAdHoc ? "ad-hoc-customer" : ""} ${draggedIndex === index ? "dragging" : ""} ${selectedCustomerIds.has(c.id) ? "selected" : ""}`}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                const src = e.dataTransfer.getData("text/plain");
+                const fromIndex = src ? parseInt(src, 10) : null;
+                if (fromIndex !== null && !isNaN(fromIndex) && fromIndex !== index) {
+                  reorderCustomers(fromIndex, index);
+                }
+                setDraggedIndex(null);
+              }}
+            >
+              <div
+                className="customer-drag-handle"
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData("text/plain", String(index));
+                  e.dataTransfer.effectAllowed = "move";
+                  setDraggedIndex(index);
+                }}
+                onDragEnd={() => setDraggedIndex(null)}
+                title="Drag to reorder"
+              >
+                ⋮⋮
+              </div>
               <div
                 className="customer-color-bar"
                 style={{ backgroundColor: c.color }}
               />
-              <div className="customer-info">
+              <div
+                className="customer-info"
+                onClick={() => onToggleCustomer(c.id)}
+              >
                 <span className="customer-name">{c.name}</span>
                 <span className="customer-hours">
                   {logged.toFixed(1)}h
                   {hasCommitment ? ` / ${c.monthlyHours}h` : c.isAdHoc ? " (ad-hoc)" : ""}
                 </span>
+                <button
+                  className="btn-icon notes"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setNotesCustomerId(c.id);
+                  }}
+                  title="View notes summary"
+                >
+                  📋
+                </button>
               </div>
               {hasCommitment && (
               <div className="progress-bar">
@@ -67,13 +111,6 @@ export function CustomerList({ year, month }: Props) {
                 />
               </div>
               )}
-              <button
-                className="btn-icon delete"
-                onClick={() => removeCustomer(c.id)}
-                title="Remove customer"
-              >
-                ×
-              </button>
             </div>
           );
         })}
@@ -87,6 +124,16 @@ export function CustomerList({ year, month }: Props) {
           </div>
         )}
       </div>
+
+      {notesCustomerId && (
+        <CustomerNotesModal
+          customerId={notesCustomerId}
+          customerName={customers.find((c) => c.id === notesCustomerId)?.name ?? ""}
+          year={year}
+          month={month}
+          onClose={() => setNotesCustomerId(null)}
+        />
+      )}
     </section>
   );
 }
