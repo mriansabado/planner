@@ -18,7 +18,6 @@ type Props = {
 export function HoursChart({ year, month, selectedCustomerIds }: Props) {
   const {
     customers,
-    getSessionsForMonth,
     getTotalCommittedHours,
     getTotalLoggedHours,
     getHoursByCustomer,
@@ -65,7 +64,6 @@ export function HoursChart({ year, month, selectedCustomerIds }: Props) {
 
   const met = committed > 0 && logged >= committed;
   const pct = committed > 0 ? Math.min(100, (logged / committed) * 100) : 0;
-  const sessions = getSessionsForMonth(year, month);
 
   return (
     <section className="hours-chart">
@@ -102,43 +100,6 @@ export function HoursChart({ year, month, selectedCustomerIds }: Props) {
           {logged.toFixed(1)} / {committed} hours
         </span>
       </div>
-      {isFiltered && filteredCustomers.length > 0 && (
-        <div className="chart-filter-details">
-          {filteredCustomers.map((c) => {
-            const entry = byCustomer.find((b) => b.customerId === c.id);
-            const hours = entry?.hours ?? 0;
-            const commitment = c.isAdHoc ? 0 : c.monthlyHours;
-            const customerSessions = sessions.filter(
-              (s) => s.customerId === c.id && !s.isAdHoc
-            );
-            return (
-              <div key={c.id} className="filter-detail-card">
-                <div className="filter-detail-header">
-                  <span
-                    className="filter-detail-color"
-                    style={{ backgroundColor: c.color }}
-                  />
-                  <strong>{c.name}</strong>
-                  <span className="filter-detail-hours">
-                    {hours.toFixed(1)}h{commitment > 0 ? ` / ${commitment}h` : ""}
-                  </span>
-                </div>
-                {customerSessions.length > 0 && (
-                  <ul className="filter-detail-sessions">
-                    {customerSessions
-                      .sort((a, b) => a.date.localeCompare(b.date))
-                      .map((s) => (
-                        <li key={s.id}>
-                          {s.date}: {s.hours}h{s.notes ? ` — ${s.notes}` : ""}
-                        </li>
-                      ))}
-                  </ul>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
       {chartData.length > 0 && (
         <div className="chart-container">
           <ResponsiveContainer width="100%" height={200}>

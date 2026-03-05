@@ -123,16 +123,21 @@ export function PlannerView({ focusDate, onFocusDateChange, onDayClick }: Props)
                         key={s.id}
                         className="session-chip clickable"
                         style={{ borderLeftColor: color }}
-                        title={`${s.hours}h${s.notes ? `: ${s.notes}` : ""}`}
+                        title={`${s.isAdHoc ? "Ad-hoc" : customer?.name ?? ""} · ${s.hours}h${s.notes ? `: ${s.notes}` : ""}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedSessionId(s.id);
                         }}
                       >
-                        <span className="chip-hours">{s.hours}h</span>
-                        {s.notes && (
-                          <span className="chip-notes">{s.notes}</span>
-                        )}
+                        <span className="chip-customer">
+                          {s.isAdHoc ? "Ad-hoc" : customer?.name ?? "—"}
+                        </span>
+                        <span className="chip-details">
+                          <span className="chip-hours">{s.hours}h</span>
+                          {s.notes && (
+                            <span className="chip-notes">{s.notes}</span>
+                          )}
+                        </span>
                       </div>
                     );
                   })}
