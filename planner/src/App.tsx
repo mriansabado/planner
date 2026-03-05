@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import "./App.css";
 import { StoreProvider } from "./store/useStore";
 import { ViewToggle } from "./components/ViewToggle";
+import { ThemeToggle } from "./components/ThemeToggle";
 import { AddCustomerModal } from "./components/AddCustomerModal";
 import { AddWorkSessionModal } from "./components/AddWorkSessionModal";
 import { CustomerList } from "./components/CustomerList";
@@ -26,6 +27,7 @@ function AppContent() {
           <p className="tagline">Track hours. Meet commitments. Stay organized.</p>
         </div>
         <div className="header-actions">
+          <ThemeToggle />
           <ViewToggle />
           <button className="btn-secondary" onClick={() => { setSessionDate(undefined); setShowAddSession(true); }}>
             + Log work

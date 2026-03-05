@@ -1,0 +1,7 @@
+{
+  "name": "planner",
+  "private": true,
+  "scripts": {
+    "build": "cd planner && npm run build"
+  }
+}
