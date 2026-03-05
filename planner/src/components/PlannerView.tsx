@@ -93,7 +93,8 @@ export function PlannerView({ focusDate, onFocusDateChange, onDayClick }: Props)
           <div className="day-headers">
             {dayHeaders.map((h) => (
               <div key={h} className="day-header">
-                {h}
+                <span className="day-header-full">{h}</span>
+                <span className="day-header-short">{h.charAt(0)}</span>
               </div>
             ))}
           </div>
