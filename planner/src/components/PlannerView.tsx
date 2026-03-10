@@ -14,6 +14,7 @@ import {
 } from "date-fns";
 import { useStore } from "../store/useStore";
 import { SessionDetailModal } from "./SessionDetailModal";
+import { TaskDetailModal } from "./TaskDetailModal";
 
 type Props = {
   focusDate: Date;
@@ -23,7 +24,9 @@ type Props = {
 
 export function PlannerView({ focusDate, onFocusDateChange, onDayClick }: Props) {
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-  const { viewMode, workSessions, customers } = useStore();
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [selectedTaskDate, setSelectedTaskDate] = useState<string | null>(null);
+  const { viewMode, workSessions, customers, getTasksForDay, isTaskDoneForDate } = useStore();
 
   const getSessionsForDay = (d: Date) => {
     const key = format(d, "yyyy-MM-dd");
@@ -103,6 +106,7 @@ export function PlannerView({ focusDate, onFocusDateChange, onDayClick }: Props)
         <div className="planner-days">
           {days.map((d) => {
             const sessions = getSessionsForDay(d);
+            const tasks = getTasksForDay(d);
             const totalHours = getTotalHoursForDay(d);
             const inMonth = viewMode !== "monthly" || isSameMonth(d, focusDate);
 
@@ -142,6 +146,33 @@ export function PlannerView({ focusDate, onFocusDateChange, onDayClick }: Props)
                       </div>
                     );
                   })}
+                  {inMonth &&
+                    tasks.map((t) => {
+                      const dateKey = format(d, "yyyy-MM-dd");
+                      const isDone = isTaskDoneForDate(t, dateKey);
+                      const customer = customerMap.get(t.customerId);
+                      const color = customer?.color ?? "var(--accent)";
+                      return (
+                        <div
+                          key={`${t.id}-${dateKey}`}
+                          className={`session-chip task-chip clickable ${isDone ? "task-done" : ""}`}
+                          style={{
+                            borderLeftColor: isDone ? "var(--text-muted)" : color,
+                          }}
+                          title={`${isDone ? "Done · " : ""}${customer?.name ?? ""} · ${t.text} · Click to open`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedTaskId(t.id);
+                            setSelectedTaskDate(dateKey);
+                          }}
+                        >
+                          <span className="chip-customer">
+                            {isDone ? "✓" : "☐"} {customer?.name ?? "—"}
+                          </span>
+                          <span className="chip-notes">{t.text}</span>
+                        </div>
+                      );
+                    })}
                 </div>
                 {totalHours > 0 && (
                   <div className="day-total">{totalHours.toFixed(1)}h</div>
@@ -156,6 +187,16 @@ export function PlannerView({ focusDate, onFocusDateChange, onDayClick }: Props)
         <SessionDetailModal
           sessionId={selectedSessionId}
           onClose={() => setSelectedSessionId(null)}
+        />
+      )}
+      {selectedTaskId && selectedTaskDate && (
+        <TaskDetailModal
+          taskId={selectedTaskId}
+          date={selectedTaskDate}
+          onClose={() => {
+            setSelectedTaskId(null);
+            setSelectedTaskDate(null);
+          }}
         />
       )}
     </section>

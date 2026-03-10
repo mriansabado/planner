@@ -1,18 +1,20 @@
 import { createContext, useContext, useCallback, useState, useEffect } from "react";
 import type { ReactNode } from "react";
-import type { Customer, WorkSession, ViewMode } from "../types";
+import type { Customer, WorkSession, Task, ViewMode } from "../types";
 
 const STORAGE_KEY = "freelance-planner-data";
 
 type StoreData = {
   customers: Customer[];
   workSessions: WorkSession[];
+  tasks: Task[];
   customerOrder: string[];
 };
 
 const DEFAULT_DATA: StoreData = {
   customers: [],
   workSessions: [],
+  tasks: [],
   customerOrder: [],
 };
 
@@ -20,11 +22,26 @@ function loadData(): StoreData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      const parsed = JSON.parse(raw);
-      if ((!parsed.customerOrder || parsed.customerOrder.length === 0) && Array.isArray(parsed.customers)) {
-        parsed.customerOrder = parsed.customers.map((c: Customer) => c.id);
+      const parsed = JSON.parse(raw) as Partial<StoreData>;
+      const data: StoreData = {
+        ...DEFAULT_DATA,
+        ...parsed,
+        customers: Array.isArray(parsed.customers) ? parsed.customers : DEFAULT_DATA.customers,
+        workSessions: Array.isArray(parsed.workSessions) ? parsed.workSessions : DEFAULT_DATA.workSessions,
+        tasks: Array.isArray(parsed.tasks) ? parsed.tasks : DEFAULT_DATA.tasks,
+        customerOrder: Array.isArray(parsed.customerOrder) ? parsed.customerOrder : DEFAULT_DATA.customerOrder,
+      };
+      if (data.customerOrder.length === 0 && data.customers.length > 0) {
+        data.customerOrder = data.customers.map((c) => c.id);
       }
-      return parsed;
+      // Migrate weekly tasks: ensure dayOfWeek is set (0=Sun if missing)
+      data.tasks = data.tasks.map((t) => {
+        if (t.isWeekly && (t.dayOfWeek == null || t.dayOfWeek === undefined)) {
+          return { ...t, dayOfWeek: 0 };
+        }
+        return t;
+      });
+      return data;
     }
   } catch {
     // ignore
@@ -50,6 +67,7 @@ type Store = {
   customers: Customer[];
   customerOrder: string[];
   workSessions: WorkSession[];
+  tasks: Task[];
   viewMode: ViewMode;
   setViewMode: (m: ViewMode) => void;
   addCustomer: (name: string, options: { monthlyHours?: number; isAdHoc?: boolean }) => void;
@@ -58,6 +76,13 @@ type Store = {
   addWorkSession: (session: Omit<WorkSession, "id">) => void;
   removeWorkSession: (id: string) => void;
   updateWorkSession: (id: string, updates: Partial<Omit<WorkSession, "id">>) => void;
+  addTask: (task: Omit<Task, "id" | "createdAt"> & { done?: boolean }) => void;
+  removeTask: (id: string) => void;
+  updateTask: (id: string, updates: Partial<Pick<Task, "text" | "done" | "isWeekly" | "dayOfWeek">>) => void;
+  setTaskCompletionForDate: (taskId: string, date: string, done: boolean) => void;
+  isTaskDoneForDate: (task: Task, date: string) => boolean;
+  getTasksForCustomer: (customerId: string) => Task[];
+  getTasksForDay: (date: Date) => Task[];
   getSessionsForMonth: (year: number, month: number) => WorkSession[];
   getTotalCommittedHours: (year: number, month: number) => number;
   getTotalLoggedHours: (year: number, month: number) => number;
@@ -99,6 +124,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       customers: prev.customers.filter((c) => c.id !== id),
       customerOrder: prev.customerOrder.filter((oid) => oid !== id),
       workSessions: prev.workSessions.filter((s) => s.customerId !== id),
+      tasks: prev.tasks.filter((t) => t.customerId !== id),
     }));
   }, []);
 
@@ -137,6 +163,84 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       ),
     }));
   }, []);
+
+  const addTask = useCallback((task: Omit<Task, "id" | "createdAt"> & { done?: boolean }) => {
+    const isWeekly = task.isWeekly ?? false;
+    const newTask: Task = {
+      ...task,
+      done: task.done ?? false,
+      isWeekly,
+      dayOfWeek: isWeekly ? (task.dayOfWeek ?? 0) : undefined,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+    };
+    setData((prev) => ({
+      ...prev,
+      tasks: [...prev.tasks, newTask],
+    }));
+  }, []);
+
+  const removeTask = useCallback((id: string) => {
+    setData((prev) => ({
+      ...prev,
+      tasks: prev.tasks.filter((t) => t.id !== id),
+    }));
+  }, []);
+
+  const updateTask = useCallback((id: string, updates: Partial<Pick<Task, "text" | "done" | "isWeekly" | "dayOfWeek">>) => {
+    setData((prev) => ({
+      ...prev,
+      tasks: prev.tasks.map((t) =>
+        t.id === id ? { ...t, ...updates } : t
+      ),
+    }));
+  }, []);
+
+  const setTaskCompletionForDate = useCallback((taskId: string, date: string, done: boolean) => {
+    setData((prev) => ({
+      ...prev,
+      tasks: prev.tasks.map((t) => {
+        if (t.id !== taskId) return t;
+        const dates = t.completedDates ?? [];
+        const hasDate = dates.includes(date);
+        if (done && !hasDate) {
+          return { ...t, completedDates: [...dates, date].sort() };
+        }
+        if (!done && hasDate) {
+          return { ...t, completedDates: dates.filter((d) => d !== date) };
+        }
+        return t;
+      }),
+    }));
+  }, []);
+
+  const isTaskDoneForDate = useCallback((task: Task, date: string) => {
+    if (task.isWeekly && task.completedDates) {
+      return task.completedDates.includes(date);
+    }
+    return task.done;
+  }, []);
+
+  const getTasksForCustomer = useCallback(
+    (customerId: string) => {
+      return data.tasks
+        .filter((t) => t.customerId === customerId)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    },
+    [data.tasks]
+  );
+
+  const getTasksForDay = useCallback(
+    (date: Date) => {
+      const targetDay = date.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+      return data.tasks.filter((t) => {
+        if (!t.isWeekly) return false;
+        const taskDay = t.dayOfWeek ?? 0; // fallback for older tasks
+        return Number(taskDay) === targetDay;
+      });
+    },
+    [data.tasks]
+  );
 
   const getSessionsForMonth = useCallback(
     (year: number, month: number) => {
@@ -189,6 +293,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     customers: orderedCustomers,
     customerOrder: data.customerOrder,
     workSessions: data.workSessions,
+    tasks: data.tasks,
     viewMode,
     setViewMode,
     addCustomer,
@@ -197,6 +302,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     addWorkSession,
     removeWorkSession,
     updateWorkSession,
+    addTask,
+    removeTask,
+    updateTask,
+    setTaskCompletionForDate,
+    isTaskDoneForDate,
+    getTasksForCustomer,
+    getTasksForDay,
     getSessionsForMonth,
     getTotalCommittedHours,
     getTotalLoggedHours,

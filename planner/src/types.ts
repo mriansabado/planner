@@ -15,4 +15,15 @@ export type WorkSession = {
   isAdHoc: boolean;
 };
 
+export type Task = {
+  id: string;
+  customerId: string;
+  text: string;
+  done: boolean;
+  isWeekly?: boolean;
+  dayOfWeek?: number; // 0=Sun, 1=Mon, ..., 6=Sat
+  completedDates?: string[]; // ISO dates "YYYY-MM-DD" - per-occurrence completion for weekly tasks
+  createdAt: string; // ISO string
+};
+
 export type ViewMode = "monthly" | "weekly" | "daily";

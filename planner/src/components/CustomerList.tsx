@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useStore } from "../store/useStore";
 import { CustomerNotesModal } from "./CustomerNotesModal";
+import { QuickAddTasksModal } from "./QuickAddTasksModal";
+import { CustomerTasksModal } from "./CustomerTasksModal";
 
 type Props = {
   year: number;
@@ -11,8 +13,10 @@ type Props = {
 
 export function CustomerList({ year, month, selectedCustomerIds, onToggleCustomer }: Props) {
   const [notesCustomerId, setNotesCustomerId] = useState<string | null>(null);
+  const [tasksCustomerId, setTasksCustomerId] = useState<string | null>(null);
+  const [tasksViewCustomerId, setTasksViewCustomerId] = useState<string | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const { customers, getSessionsForMonth, reorderCustomers } = useStore();
+  const { customers, getSessionsForMonth, getTasksForCustomer, reorderCustomers } = useStore();
   const sessions = getSessionsForMonth(year, month);
 
   const hoursByCustomer = new Map<string, number>();
@@ -45,6 +49,7 @@ export function CustomerList({ year, month, selectedCustomerIds, onToggleCustome
       <div className="customer-cards">
         {customers.map((c, index) => {
           const logged = hoursByCustomer.get(c.id) ?? 0;
+          const pendingTasks = getTasksForCustomer(c.id).filter((t) => !t.done).length;
           const hasCommitment = !c.isAdHoc && c.monthlyHours > 0;
           const pct = hasCommitment ? Math.min(100, (logged / c.monthlyHours) * 100) : 0;
           const met = hasCommitment && logged >= c.monthlyHours;
@@ -90,6 +95,19 @@ export function CustomerList({ year, month, selectedCustomerIds, onToggleCustome
                   {hasCommitment ? ` / ${c.monthlyHours}h` : c.isAdHoc ? " (ad-hoc)" : ""}
                 </span>
                 <button
+                  className="btn-icon tasks"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setTasksCustomerId(c.id);
+                  }}
+                  title="Quick add tasks (during call)"
+                >
+                  📝
+                  {pendingTasks > 0 && (
+                    <span className="task-badge">{pendingTasks}</span>
+                  )}
+                </button>
+                <button
                   className="btn-icon notes"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -132,6 +150,24 @@ export function CustomerList({ year, month, selectedCustomerIds, onToggleCustome
           year={year}
           month={month}
           onClose={() => setNotesCustomerId(null)}
+        />
+      )}
+      {tasksCustomerId && (
+        <QuickAddTasksModal
+          customerId={tasksCustomerId}
+          customerName={customers.find((c) => c.id === tasksCustomerId)?.name ?? ""}
+          onClose={() => setTasksCustomerId(null)}
+          onViewAll={() => {
+            setTasksViewCustomerId(tasksCustomerId);
+            setTasksCustomerId(null);
+          }}
+        />
+      )}
+      {tasksViewCustomerId && (
+        <CustomerTasksModal
+          customerId={tasksViewCustomerId}
+          customerName={customers.find((c) => c.id === tasksViewCustomerId)?.name ?? ""}
+          onClose={() => setTasksViewCustomerId(null)}
         />
       )}
     </section>

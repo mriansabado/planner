@@ -1,11 +1,14 @@
+import { useState } from "react";
 import { useStore } from "../store/useStore";
+import { CustomerTasksModal } from "./CustomerTasksModal";
 
 type Props = {
   onClose: () => void;
 };
 
 export function AllClientsModal({ onClose }: Props) {
-  const { customers, workSessions, removeCustomer } = useStore();
+  const [tasksCustomerId, setTasksCustomerId] = useState<string | null>(null);
+  const { customers, workSessions, removeCustomer, getTasksForCustomer } = useStore();
 
   const handleDelete = (id: string, name: string) => {
     if (window.confirm(`Delete client "${name}"? This will also remove all their work sessions.`)) {
@@ -44,6 +47,7 @@ export function AllClientsModal({ onClose }: Props) {
             {customers.map((c) => {
               const totalHours = totalHoursByCustomer.get(c.id) ?? 0;
               const sessionCount = sessionCountByCustomer.get(c.id) ?? 0;
+              const taskCount = getTasksForCustomer(c.id).length;
               return (
                 <li key={c.id} className="all-clients-item">
                   <div
@@ -57,8 +61,17 @@ export function AllClientsModal({ onClose }: Props) {
                       {" · "}
                       {totalHours.toFixed(1)}h total
                       {sessionCount > 0 && ` · ${sessionCount} session${sessionCount !== 1 ? "s" : ""}`}
+                      {taskCount > 0 && ` · ${taskCount} task${taskCount !== 1 ? "s" : ""}`}
                     </span>
                   </div>
+                  <button
+                    type="button"
+                    className="btn-tasks"
+                    onClick={() => setTasksCustomerId(c.id)}
+                    title="View all tasks"
+                  >
+                    Tasks
+                  </button>
                   <button
                     type="button"
                     className="btn-delete-client"
@@ -78,6 +91,14 @@ export function AllClientsModal({ onClose }: Props) {
           </button>
         </div>
       </div>
+
+      {tasksCustomerId && (
+        <CustomerTasksModal
+          customerId={tasksCustomerId}
+          customerName={customers.find((c) => c.id === tasksCustomerId)?.name ?? ""}
+          onClose={() => setTasksCustomerId(null)}
+        />
+      )}
     </div>
   );
 }
