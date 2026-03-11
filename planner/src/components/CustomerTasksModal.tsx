@@ -219,9 +219,11 @@ export function CustomerTasksModal({
                 {t.isWeekly && (
                   <span
                     className="tasks-item-weekly-badge"
-                    onClick={() =>
-                      updateTask(t.id, { isWeekly: false, dayOfWeek: undefined })
-                    }
+                    onClick={() => {
+                      if (window.confirm("Remove this task from the calendar? It will become a one-time task.")) {
+                        updateTask(t.id, { isWeekly: false, dayOfWeek: undefined });
+                      }
+                    }}
                     title="Remove from calendar"
                   >
                     {t.dayOfWeek != null
@@ -242,7 +244,13 @@ export function CustomerTasksModal({
                 <button
                   type="button"
                   className="tasks-item-delete"
-                  onClick={() => removeTask(t.id)}
+                  onClick={() => {
+                    if (t.isWeekly
+                      ? window.confirm("Delete this weekly task? This cannot be undone.")
+                      : window.confirm("Delete this task?")) {
+                      removeTask(t.id);
+                    }
+                  }}
                   title="Delete task"
                 >
                   ×

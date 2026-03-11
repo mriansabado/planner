@@ -59,8 +59,7 @@ export function QuickAddTasksModal({
         dayOfWeek: isWeekly ? dayOfWeekValue : undefined,
       });
     }
-    setInput("");
-    inputRef.current?.focus();
+    onClose();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -156,7 +155,11 @@ export function QuickAddTasksModal({
                 {t.isWeekly && (
                   <span
                     className="quick-task-weekly-badge"
-                    onClick={() => updateTask(t.id, { isWeekly: false, dayOfWeek: undefined })}
+                    onClick={() => {
+                      if (window.confirm("Remove this task from the calendar? It will become a one-time task.")) {
+                        updateTask(t.id, { isWeekly: false, dayOfWeek: undefined });
+                      }
+                    }}
                     title="Click to remove from calendar"
                   >
                     {t.dayOfWeek != null
@@ -176,7 +179,13 @@ export function QuickAddTasksModal({
                 <button
                   type="button"
                   className="quick-task-delete btn-icon delete"
-                  onClick={() => removeTask(t.id)}
+                  onClick={() => {
+                    if (t.isWeekly
+                      ? window.confirm("Delete this weekly task? This cannot be undone.")
+                      : window.confirm("Delete this task?")) {
+                      removeTask(t.id);
+                    }
+                  }}
                   title="Remove task"
                 >
                   ×

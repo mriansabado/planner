@@ -37,7 +37,10 @@ export function TaskDetailModal({ taskId, date, onClose }: Props) {
   };
 
   const handleDelete = () => {
-    if (window.confirm("Delete this task?")) {
+    const message = task.isWeekly
+      ? "Delete this weekly task? This cannot be undone."
+      : "Delete this task?";
+    if (window.confirm(message)) {
       removeTask(taskId);
       onClose();
     }

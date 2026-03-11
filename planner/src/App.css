@@ -429,8 +429,8 @@
 }
 
 .planner-day.today {
-  border-color: rgba(99, 102, 241, 0.3);
-  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.2);
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
 }
 
 .planner-grid {
@@ -498,6 +498,41 @@
   opacity: 0.4;
 }
 
+.planner-day.has-activity {
+  height: 132px;
+  min-height: 132px;
+  max-height: 132px;
+  border-color: rgba(99, 102, 241, 0.35);
+  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.15);
+}
+
+.day-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem;
+  cursor: pointer;
+  margin-bottom: 0.5rem;
+}
+
+.day-top:hover .day-num,
+.day-top:hover .day-view-hint {
+  color: var(--accent);
+}
+
+.day-view-hint {
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: lowercase;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.planner-day:hover .day-view-hint {
+  opacity: 1;
+}
+
 .planner-day.clickable {
   cursor: pointer;
 }
@@ -517,7 +552,14 @@
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--text-secondary);
-  margin-bottom: 0.5rem;
+}
+
+.day-sessions-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .day-sessions {
@@ -527,6 +569,25 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+}
+
+.day-scroll-fade {
+  display: none;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 24px;
+  pointer-events: none;
+  background: linear-gradient(to top, var(--bg-elevated), transparent);
+}
+
+.day-sessions-wrap.scrollable .day-scroll-fade {
+  display: block;
+}
+
+.planner-day:hover .day-scroll-fade {
+  background: linear-gradient(to top, var(--accent-soft), transparent);
 }
 
 .session-chip {
@@ -598,6 +659,96 @@
   color: white;
 }
 
+/* Day detail modal */
+.modal-day-detail {
+  max-width: 440px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.day-detail-empty {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin: 0 0 1.5rem;
+}
+
+.day-detail-content {
+  margin-bottom: 1.5rem;
+}
+
+.day-detail-section {
+  margin-bottom: 1rem;
+}
+
+.day-detail-section:last-child {
+  margin-bottom: 0;
+}
+
+.day-detail-section-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 0.5rem;
+}
+
+.day-detail-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.day-detail-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 0.25rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+}
+
+.day-detail-item:last-child {
+  margin-bottom: 0;
+}
+
+.day-detail-item.clickable {
+  cursor: pointer;
+}
+
+.day-detail-item.clickable:hover {
+  background: var(--accent-soft);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.day-detail-item.done .day-detail-item-text {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.day-detail-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.day-detail-item-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.95rem;
+}
+
+.day-detail-total {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0.75rem 0 0;
+}
+
 .chip-customer {
   font-weight: 600;
   font-size: 0.65rem;
@@ -628,11 +779,27 @@
   white-space: nowrap;
 }
 
-.day-total {
+.day-add {
   margin-top: 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 600;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 500;
   color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+}
+
+.planner-day:hover .day-add {
+  opacity: 1;
+}
+
+.day-add:hover {
+  color: var(--accent);
+  background: var(--accent-soft);
 }
 
 /* Modals */
@@ -1445,6 +1612,12 @@
     padding: 0.35rem;
   }
 
+  .planner-day.has-activity {
+    height: 100px;
+    min-height: 100px;
+    max-height: 100px;
+  }
+
   .planner-day.daily {
     height: 150px;
     min-height: 150px;
@@ -1453,7 +1626,14 @@
 
   .day-num {
     font-size: 0.75rem;
-    margin-bottom: 0.35rem;
+  }
+
+  .day-view-hint {
+    font-size: 0.6rem;
+  }
+
+  .day-add {
+    font-size: 0.65rem;
   }
 
   .session-chip {
@@ -1467,11 +1647,6 @@
 
   .chip-notes {
     font-size: 0.6rem;
-  }
-
-  .day-total {
-    font-size: 0.65rem;
-    margin-top: 0.35rem;
   }
 
   .customer-list,

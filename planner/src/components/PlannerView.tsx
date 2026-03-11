@@ -15,6 +15,7 @@ import {
 import { useStore } from "../store/useStore";
 import { SessionDetailModal } from "./SessionDetailModal";
 import { TaskDetailModal } from "./TaskDetailModal";
+import { DayDetailModal } from "./DayDetailModal";
 
 type Props = {
   focusDate: Date;
@@ -26,15 +27,12 @@ export function PlannerView({ focusDate, onFocusDateChange, onDayClick }: Props)
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [selectedTaskDate, setSelectedTaskDate] = useState<string | null>(null);
+  const [expandedDayKey, setExpandedDayKey] = useState<string | null>(null);
   const { viewMode, workSessions, customers, getTasksForDay, isTaskDoneForDate } = useStore();
 
   const getSessionsForDay = (d: Date) => {
     const key = format(d, "yyyy-MM-dd");
     return workSessions.filter((s) => s.date === key);
-  };
-
-  const getTotalHoursForDay = (d: Date) => {
-    return getSessionsForDay(d).reduce((sum, s) => sum + s.hours, 0);
   };
 
   const navigate = (dir: 1 | -1) => {
@@ -105,19 +103,31 @@ export function PlannerView({ focusDate, onFocusDateChange, onDayClick }: Props)
 
         <div className="planner-days">
           {days.map((d) => {
+            const dateKey = format(d, "yyyy-MM-dd");
             const sessions = getSessionsForDay(d);
             const tasks = getTasksForDay(d);
-            const totalHours = getTotalHoursForDay(d);
             const inMonth = viewMode !== "monthly" || isSameMonth(d, focusDate);
+            const hasActivity = sessions.length > 0 || (inMonth && tasks.length > 0);
 
             return (
               <div
                 key={d.toISOString()}
-                className={`planner-day ${!inMonth ? "other-month" : ""} ${onDayClick ? "clickable" : ""} ${isToday(d) ? "today" : ""}`}
-                onClick={() => onDayClick?.(format(d, "yyyy-MM-dd"))}
+                className={`planner-day ${!inMonth ? "other-month" : ""} ${onDayClick ? "clickable" : ""} ${isToday(d) ? "today" : ""} ${hasActivity ? "has-activity" : ""}`}
+                onClick={() => onDayClick?.(dateKey)}
               >
-                <div className="day-num">{format(d, "d")}</div>
-                <div className="day-sessions">
+                <div
+                  className="day-top"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setExpandedDayKey(dateKey);
+                  }}
+                  title="View day details"
+                >
+                  <span className="day-num">{format(d, "d")}</span>
+                  <span className="day-view-hint">view day</span>
+                </div>
+                <div className={`day-sessions-wrap ${sessions.length + tasks.length >= 2 ? "scrollable" : ""}`}>
+                  <div className="day-sessions">
                   {sessions.map((s) => {
                     const customer = s.customerId
                       ? customerMap.get(s.customerId)
@@ -148,7 +158,6 @@ export function PlannerView({ focusDate, onFocusDateChange, onDayClick }: Props)
                   })}
                   {inMonth &&
                     tasks.map((t) => {
-                      const dateKey = format(d, "yyyy-MM-dd");
                       const isDone = isTaskDoneForDate(t, dateKey);
                       const customer = customerMap.get(t.customerId);
                       const color = customer?.color ?? "var(--accent)";
@@ -173,9 +182,21 @@ export function PlannerView({ focusDate, onFocusDateChange, onDayClick }: Props)
                         </div>
                       );
                     })}
+                  </div>
+                  <div className="day-scroll-fade" aria-hidden />
                 </div>
-                {totalHours > 0 && (
-                  <div className="day-total">{totalHours.toFixed(1)}h</div>
+                {onDayClick && inMonth && (
+                  <button
+                    type="button"
+                    className="day-add"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDayClick(dateKey);
+                    }}
+                    title="Log work for this day"
+                  >
+                    + add
+                  </button>
                 )}
               </div>
             );
@@ -197,6 +218,12 @@ export function PlannerView({ focusDate, onFocusDateChange, onDayClick }: Props)
             setSelectedTaskId(null);
             setSelectedTaskDate(null);
           }}
+        />
+      )}
+      {expandedDayKey && (
+        <DayDetailModal
+          date={expandedDayKey}
+          onClose={() => setExpandedDayKey(null)}
         />
       )}
     </section>
