@@ -659,6 +659,33 @@
   color: white;
 }
 
+.task-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.task-edit-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.task-edit-schedule {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.label-optional {
+  font-weight: 400;
+  color: var(--text-muted);
+  font-size: 0.85em;
+}
+
 /* Day detail modal */
 .modal-day-detail {
   max-width: 440px;

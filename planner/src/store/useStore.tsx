@@ -78,7 +78,7 @@ type Store = {
   updateWorkSession: (id: string, updates: Partial<Omit<WorkSession, "id">>) => void;
   addTask: (task: Omit<Task, "id" | "createdAt"> & { done?: boolean }) => void;
   removeTask: (id: string) => void;
-  updateTask: (id: string, updates: Partial<Pick<Task, "text" | "done" | "isWeekly" | "dayOfWeek">>) => void;
+  updateTask: (id: string, updates: Partial<Pick<Task, "text" | "done" | "isWeekly" | "dayOfWeek" | "customerId" | "estimatedHours">>) => void;
   setTaskCompletionForDate: (taskId: string, date: string, done: boolean) => void;
   isTaskDoneForDate: (task: Task, date: string) => boolean;
   getTasksForCustomer: (customerId: string) => Task[];
@@ -187,7 +187,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
-  const updateTask = useCallback((id: string, updates: Partial<Pick<Task, "text" | "done" | "isWeekly" | "dayOfWeek">>) => {
+  const updateTask = useCallback((id: string, updates: Partial<Pick<Task, "text" | "done" | "isWeekly" | "dayOfWeek" | "customerId" | "estimatedHours">>) => {
     setData((prev) => ({
       ...prev,
       tasks: prev.tasks.map((t) =>

@@ -23,6 +23,7 @@ export type Task = {
   isWeekly?: boolean;
   dayOfWeek?: number; // 0=Sun, 1=Mon, ..., 6=Sat
   completedDates?: string[]; // ISO dates "YYYY-MM-DD" - per-occurrence completion for weekly tasks
+  estimatedHours?: number; // optional planned/estimated time
   createdAt: string; // ISO string
 };
 
