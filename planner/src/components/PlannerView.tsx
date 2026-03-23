@@ -28,7 +28,7 @@ export function PlannerView({ focusDate, onFocusDateChange, onDayClick }: Props)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [selectedTaskDate, setSelectedTaskDate] = useState<string | null>(null);
   const [expandedDayKey, setExpandedDayKey] = useState<string | null>(null);
-  const { viewMode, workSessions, customers, getTasksForDay, isTaskDoneForDate } = useStore();
+  const { viewMode, setViewMode, workSessions, customers, getTasksForDay, isTaskDoneForDate } = useStore();
 
   const getSessionsForDay = (d: Date) => {
     const key = format(d, "yyyy-MM-dd");
@@ -72,6 +72,7 @@ export function PlannerView({ focusDate, onFocusDateChange, onDayClick }: Props)
 
   const goToToday = () => {
     onFocusDateChange(new Date());
+    setViewMode("daily");
   };
 
   return (

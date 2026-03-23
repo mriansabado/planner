@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useStore } from "../store/useStore";
 import { CustomerNotesModal } from "./CustomerNotesModal";
 import { QuickAddTasksModal } from "./QuickAddTasksModal";
@@ -16,7 +17,7 @@ export function CustomerList({ year, month, selectedCustomerIds, onToggleCustome
   const [tasksCustomerId, setTasksCustomerId] = useState<string | null>(null);
   const [tasksViewCustomerId, setTasksViewCustomerId] = useState<string | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const { customers, getSessionsForMonth, getTasksForCustomer, reorderCustomers } = useStore();
+  const { customers, getSessionsForMonth, reorderCustomers } = useStore();
   const sessions = getSessionsForMonth(year, month);
 
   const hoursByCustomer = new Map<string, number>();
@@ -49,7 +50,6 @@ export function CustomerList({ year, month, selectedCustomerIds, onToggleCustome
       <div className="customer-cards">
         {customers.map((c, index) => {
           const logged = hoursByCustomer.get(c.id) ?? 0;
-          const pendingTasks = getTasksForCustomer(c.id).filter((t) => !t.done).length;
           const hasCommitment = !c.isAdHoc && c.monthlyHours > 0;
           const pct = hasCommitment ? Math.min(100, (logged / c.monthlyHours) * 100) : 0;
           const met = hasCommitment && logged >= c.monthlyHours;
@@ -94,29 +94,14 @@ export function CustomerList({ year, month, selectedCustomerIds, onToggleCustome
                   {logged.toFixed(1)}h
                   {hasCommitment ? ` / ${c.monthlyHours}h` : c.isAdHoc ? " (ad-hoc)" : ""}
                 </span>
-                <button
-                  className="btn-icon tasks"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setTasksCustomerId(c.id);
-                  }}
-                  title="Quick add tasks (during call)"
+                <Link
+                  to={`/clients/${c.id}`}
+                  className="btn-icon customer-view-btn"
+                  title="View client page"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  📝
-                  {pendingTasks > 0 && (
-                    <span className="task-badge">{pendingTasks}</span>
-                  )}
-                </button>
-                <button
-                  className="btn-icon notes"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setNotesCustomerId(c.id);
-                  }}
-                  title="View notes summary"
-                >
-                  📋
-                </button>
+                  →
+                </Link>
               </div>
               {hasCommitment && (
               <div className="progress-bar">

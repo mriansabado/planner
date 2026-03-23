@@ -16,10 +16,12 @@ export function AddWorkSessionModal({
 }: Props) {
   const { customers, addWorkSession } = useStore();
 
-  const [customerId, setCustomerId] = useState<string | null>(
-    preselectedCustomerId ?? (customers[0]?.id ?? null)
+  // "" = unset (placeholder), "__adhoc__" = ad-hoc, otherwise a customer id
+  const [selectedValue, setSelectedValue] = useState<string>(
+    preselectedCustomerId ?? ""
   );
-  const isAdHoc = customerId === null;
+  const isAdHoc = selectedValue === "__adhoc__";
+  const customerId = isAdHoc || selectedValue === "" ? null : selectedValue;
   const [date, setDate] = useState(preselectedDate ?? format(new Date(), "yyyy-MM-dd"));
   const [hours, setHours] = useState("1");
   const [notes, setNotes] = useState("");
@@ -27,7 +29,7 @@ export function AddWorkSessionModal({
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     const h = parseFloat(hours);
-    const canSubmit = !isNaN(h) && h > 0;
+    const canSubmit = !isNaN(h) && h > 0 && selectedValue !== "";
     if (canSubmit) {
       addWorkSession({
         customerId: isAdHoc ? null : customerId,
@@ -48,10 +50,11 @@ export function AddWorkSessionModal({
           <label>
             Customer
             <select
-              value={customerId ?? ""}
-              onChange={(e) => setCustomerId(e.target.value || null)}
+              value={selectedValue}
+              onChange={(e) => setSelectedValue(e.target.value)}
             >
-              <option value="">Ad-hoc (no customer)</option>
+              <option value="" disabled>Select customer</option>
+              <option value="__adhoc__">Ad-hoc (no customer)</option>
               {customers.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
